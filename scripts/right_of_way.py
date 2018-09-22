@@ -6,13 +6,15 @@ type_hierarchy = {
 }
 
 status = {
-    'under way using engine(s)': 6,
+    'under way using engine': 6,
     'not under command': 1,
     'at anchor': 1,
     'engaged in fishing': 4,
     'restricted maneuverability': 1,
     'under way sailing': 5,
     'power driven vessel towing astern': 6,
+    'constrained by her draught': 6,
+    'power-driven vessel pushing ahead or towing alongside': 6
 }
 
 
