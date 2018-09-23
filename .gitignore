@@ -6,4 +6,5 @@
 *.zip
 *DS_Store
 Data/
+ENV/
 
