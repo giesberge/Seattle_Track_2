@@ -3,84 +3,99 @@
 import numpy as np
 
 
-vessel_groups = {
-    30: 'Fishing',
-    1001: 'Fishing',
-    1002: 'Fishing',
-    35: 'Military',
-    1021: 'Military',
-    0: 'Not available',
-    20: 'Other',
-    23: 'Other',
-    24: 'Other',
-    25: 'Other',
-    26: 'Other',
-    27: 'Other',
-    28: 'Other',
-    29: 'Other',
-    33: 'Other',
-    34: 'Other',
-    38: 'Other',
-    39: 'Other',
-    40: 'Other',
-    41: 'Other',
-    42: 'Other',
-    43: 'Other',
-    44: 'Other',
-    45: 'Other',
-    46: 'Other',
-    47: 'Other',
-    48: 'Other',
-    49: 'Other',
-    50: 'Other',
-    51: 'Other',
-    53: 'Other',
-    54: 'Other',
-    55: 'Other',
-    56: 'Other',
-    57: 'Other',
-    58: 'Other',
-    59: 'Other',
-    36: 'Pleasure Craft/Sailing',
-    37: 'Pleasure Craft/Sailing',
-    21: 'Tug Tow',
-    22: 'Tug Tow',
-    31: 'Tug Tow',
-    32: 'Tug Tow',
-    52: 'Tug Tow',
-    1003: 'Cargo',
-    1004: 'Cargo',
-    1016: 'Cargo',
-    1018: 'Other',
-    1020: 'Other',
-    1022: 'Other',
-    1012: 'Passenger',
-    1013: 'Passenger',
-    1014: 'Passenger',
-    1015: 'Passenger',
-    1019: 'Pleasure Craft/Sailing',
-    1017: 'Tanker',
-    1024: 'Tanker',
-    1023: 'Tug Tow',
-    1025: 'Tug Tow'
-}
-
-vessel_groups.update({num: 'Other' for num in range(1, 20)})
-vessel_groups.update({num: 'Cargo' for num in range(70, 80)})
-vessel_groups.update({num: 'Other' for num in range(90, 100)})
-vessel_groups.update({num: 'Other' for num in range(1005, 1012)})
-vessel_groups.update({num: 'Other' for num in range(100, 1000)})
-vessel_groups.update({num: 'Tanker' for num in range(80, 90)})
-
-vessel_groups_mod = {str(num): value for num, value in vessel_groups.items()}
-
-
-def group_vessels(num):
+def infer_vessel_type(status):
     """
-    Applies a group to a vessel depending on its vessel type.
+    Built on the assumption it will be used to apply over a pandas Series
+    (column in pandas DataFrame). Given a vessel's status, returns all
+    possible types based on previous observations within the data.
+
+    Note: sets are weird to have as a column type
     """
-    x = str(num)
+    possible_types = {
+        'at anchor': {1004, 1005, 1010, 1012, 1018, 1019, 1024, 1025},
+        'moored': {31, 35, 52, 70, 90, 1004, 1005, 1010, 1011, 1012, 1013, 1018,
+                   1019, 1020, 1022, 1024, 1025},
+        'not under command': {0},
+        'power-driven vessel towing astern': {1025},
+        'reserved for future use': {1025, 1005},
+        'restricted maneuverability': {52, 1005, 1010, 1018, 1024},
+        'undefined': {0, 30, 50, 51, 60, 99, 1003, 1005, 1012, 1018, 1019, 1024, 1025},
+        'under way using engine': {0, 23, 30, 31, 32, 35, 37, 50, 52, 53, 60, 70, 79, 90, 1001, 1004, 1005, 1010, 1011, 1012, 1013, 1018, 1019, 1020, 1022, 1025}
+        }
     try:
-        return vessel_groups_mod[x[:2]]
+        return str(possible_types[status])
     except KeyError:
         return np.nan
+
+
+def infer_vessel_status(vessel_type):
+    """
+    Inverse of infer_vessel_type. Returns vessel status based on presence
+    within the types set.
+    """
+    possible_statuses = {0: {'not under command', 'undefined', 'under way using engine'},
+                         23: {'under way using engine'},
+                         30: {'undefined', 'under way using engine'},
+                         31: {'moored', 'under way using engine'},
+                         32: {'under way using engine'},
+                         35: {'moored', 'under way using engine'},
+                         37: {'under way using engine'},
+                         50: {'undefined', 'under way using engine'},
+                         51: {'undefined'},
+                         52: {'moored', 'restricted maneuverability', 'under way using engine'},
+                         53: {'under way using engine'},
+                         60: {'undefined', 'under way using engine'},
+                         70: {'moored', 'under way using engine'},
+                         79: {'under way using engine'},
+                         90: {'moored', 'under way using engine'},
+                         99: {'undefined'},
+                         1001: {'under way using engine'},
+                         1003: {'undefined'},
+                         1004: {'at anchor', 'moored', 'under way using engine'},
+                         1005: {'at anchor',
+                                'moored',
+                                'reserved for future use',
+                                'restricted maneuverability',
+                                'undefined',
+                                'under way using engine'},
+                         1010: {'at anchor',
+                                'moored',
+                                'restricted maneuverability',
+                                'under way using engine'},
+                         1011: {'moored', 'under way using engine'},
+                         1012: {'at anchor', 'moored', 'undefined', 'under way using engine'},
+                         1013: {'moored', 'under way using engine'},
+                         1018: {'at anchor',
+                                'moored',
+                                'restricted maneuverability',
+                                'undefined',
+                                'under way using engine'},
+                         1019: {'at anchor', 'moored', 'undefined', 'under way using engine'},
+                         1020: {'moored', 'under way using engine'},
+                         1022: {'moored', 'under way using engine'},
+                         1024: {'at anchor', 'moored', 'restricted maneuverability', 'undefined'},
+                         1025: {'at anchor',
+                                'moored',
+                                'power-driven vessel towing astern',
+                                'reserved for future use',
+                                'undefined',
+                                'under way using engine'}
+                         }
+    try:
+        return str(possible_statuses[vessel_type])
+    except KeyError:
+        return np.nan
+
+
+def replace_status_and_vesseltypes(df, inferred_vessels_col, inferred_status_col):
+    """
+    We only need to infer vessel type if the type is null but status is present.
+    We only need to infer vessel status if the status is null but type is present.
+
+    This function is very hardcoded.
+    """
+    new_df = df.copy()
+    new_df['VesselType'][df['VesselType'].isnull()] = inferred_vessels_col
+    new_df['Status'][df['Status'].isnull()] = inferred_status_col
+
+    return new_df
